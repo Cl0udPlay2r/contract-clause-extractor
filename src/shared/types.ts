@@ -24,6 +24,7 @@ export interface PageRecord {
   pageNumber: number;
   text: string;
   source: 'pdf' | 'ocr';
+  confidence: number | null;
 }
 
 export interface ClauseRecord {

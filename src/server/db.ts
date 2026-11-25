@@ -28,6 +28,7 @@ db.exec(`
     page_number INTEGER NOT NULL,
     text TEXT NOT NULL,
     source TEXT NOT NULL CHECK(source IN ('pdf', 'ocr')),
+    confidence REAL,
     UNIQUE(document_id, page_number)
   );
   CREATE TABLE IF NOT EXISTS clauses (
@@ -58,6 +59,11 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_clauses_document ON clauses(document_id);
 `);
+
+const pageColumns = db.prepare('PRAGMA table_info(pages)').all() as Array<{ name: string }>;
+if (!pageColumns.some((column) => column.name === 'confidence')) {
+  db.exec('ALTER TABLE pages ADD COLUMN confidence REAL');
+}
 
 const rules = [
   ['payment-due-date', 'payment', '付款期限不明确', '检查是否明确付款日期或可计算的付款触发条件；仅写“适时付款”等表述时标记复核。', 'medium'],
