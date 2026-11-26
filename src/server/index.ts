@@ -17,8 +17,16 @@ const maxBytes = Number(process.env.MAX_FILE_MB || 12) * 1024 * 1024;
 const allowedExtensions = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.webp']);
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: maxBytes, files: 1 } });
 
+export function decodeUploadName(name: string) {
+  // Busboy decodes multipart filenames as latin1, so UTF-8 names arrive mojibaked.
+  // Re-decode only when the latin1 bytes form valid UTF-8; otherwise keep the original.
+  if (!/[\u0080-\u00ff]/.test(name)) return name;
+  const recovered = Buffer.from(name, 'latin1').toString('utf8');
+  return recovered.includes('\ufffd') ? name : recovered;
+}
+
 export function safeOriginalName(name: string) {
-  return basename(name).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 180) || '未命名合同';
+  return basename(decodeUploadName(name)).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 180) || '未命名合同';
 }
 
 export function hasValidSignature(buffer: Buffer, extension: string) {
@@ -34,8 +42,10 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
 markInterruptedJobs();
 
+export const llmConfigured = Boolean(process.env.LLM_BASE_URL && process.env.LLM_API_KEY && process.env.LLM_MODEL);
+
 app.get('/api/health', (_request, response) => {
-  response.json({ ok: true, analysisProvider: process.env.ANALYSIS_PROVIDER || 'demo' });
+  response.json({ ok: true, analysisProvider: process.env.ANALYSIS_PROVIDER || 'demo', llmConfigured });
 });
 app.get('/api/documents', (_request, response) => response.json({ documents: listDocuments() }));
 app.get('/api/documents/:id', (request, response) => {
@@ -124,5 +134,17 @@ app.use((error: unknown, _request: express.Request, response: express.Response, 
 
 if (process.env.NODE_ENV !== 'test') {
   const port = Number(process.env.PORT || 4000);
-  app.listen(port, '127.0.0.1', () => console.log(`Contract review server: http://127.0.0.1:${port}`));
+  app.listen(port, '127.0.0.1', () => {
+    const provider = process.env.ANALYSIS_PROVIDER || 'demo';
+    console.log(`Contract review server: http://127.0.0.1:${port}`);
+    console.log(`Analysis provider: ${provider === 'demo' ? 'demo (内置演示分析器)' : provider}`);
+    if (provider === 'demo' && llmConfigured) {
+      console.warn('Warning: 检测到 LLM_BASE_URL/LLM_API_KEY/LLM_MODEL，但 ANALYSIS_PROVIDER=demo，仍会使用演示分析器。');
+      console.warn('         如需调用真实模型，请在 .env 设置 ANALYSIS_PROVIDER=openai-compatible 后重启。');
+    }
+    if (provider !== 'demo' && !llmConfigured) {
+      console.warn('Warning: 真实模型模式缺少 LLM_BASE_URL、LLM_API_KEY 或 LLM_MODEL，分析会直接失败。');
+    }
+  });
+
 }

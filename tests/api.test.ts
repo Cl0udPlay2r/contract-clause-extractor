@@ -13,3 +13,11 @@ test('upload signatures reject extensions alone', () => {
 test('display filenames cannot inject paths or control characters', () => {
   assert.equal(safeOriginalName('../../demo\u0000.pdf'), 'demo.pdf');
 });
+
+test('UTF-8 filenames arrive latin1-decoded and are recovered', () => {
+  const mojibake = Buffer.from('测试合同·第一版.pdf', 'utf8').toString('latin1');
+  assert.notEqual(mojibake, '测试合同·第一版.pdf');
+  assert.equal(safeOriginalName(mojibake), '测试合同·第一版.pdf');
+  assert.equal(safeOriginalName('cafe.pdf'), 'cafe.pdf');
+  assert.equal(safeOriginalName('café.pdf'), 'café.pdf');
+});
