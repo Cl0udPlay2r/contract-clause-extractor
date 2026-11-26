@@ -8,13 +8,33 @@
 
 ## 演示
 
-| 状态 | 截图 |
-| --- | --- |
-| 空状态：上传入口与三栏骨架 | `demo/screenshots/01-empty-state.png` |
-| 抽取完成：条款导航、原文高亮、命中规则 | `demo/screenshots/02-clause-review.png` |
-| 人工复核：修改摘要后标记"已人工编辑"并确认 | `demo/screenshots/03-edited-confirmed.png` |
-| 异常路径：未识别到条款时明确提示复核 | `demo/screenshots/04-missing-clause.png` |
-| 失败路径：OCR 服务未启动时给出可重试的具体原因 | `demo/screenshots/05-ocr-unavailable.png` |
+<table>
+  <tr>
+    <td width="50%">
+      <img src="demo/screenshots/02-clause-review.png" alt="条款复核工作台" />
+      <br /><sub><b>抽取完成</b>：左侧条款导航、中间原文高亮、右侧命中规则与风险说明</sub>
+    </td>
+    <td width="50%">
+      <img src="demo/screenshots/03-edited-confirmed.png" alt="人工编辑与确认" />
+      <br /><sub><b>人工复核</b>：修改摘要后标记"已人工编辑"，确认状态写入数据库</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="demo/screenshots/04-missing-clause.png" alt="未识别到条款" />
+      <br /><sub><b>条款缺失</b>：作为正常结果返回并提示人工检查，不编造原文</sub>
+    </td>
+    <td width="50%">
+      <img src="demo/screenshots/05-ocr-unavailable.png" alt="OCR 服务未启动" />
+      <br /><sub><b>失败路径</b>：OCR 未启动时给出具体原因与重试入口</sub>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="demo/screenshots/01-empty-state.png" alt="空状态" width="70%" />
+  <br /><sub><b>空状态</b>：上传入口与三栏骨架，未分析前不呈现任何结论</sub>
+</p>
 
 可直接使用的演示文件：
 
