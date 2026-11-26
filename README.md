@@ -14,6 +14,7 @@
 | 抽取完成：条款导航、原文高亮、命中规则 | `demo/screenshots/02-clause-review.png` |
 | 人工复核：修改摘要后标记"已人工编辑"并确认 | `demo/screenshots/03-edited-confirmed.png` |
 | 异常路径：未识别到条款时明确提示复核 | `demo/screenshots/04-missing-clause.png` |
+| 失败路径：OCR 服务未启动时给出可重试的具体原因 | `demo/screenshots/05-ocr-unavailable.png` |
 
 可直接使用的演示文件：
 

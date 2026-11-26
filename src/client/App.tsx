@@ -128,7 +128,7 @@ function App() {
         <div className="topbar-divider" />
         <div className="document-heading">
           <span>{document?.name || '尚未选择合同'}</span>
-          {document && <small>{document.pageCount || '—'} 页 · {document.analyzer === 'demo' ? '内置演示分析' : '模型分析'} · {pendingCount} 项待复核</small>}
+          {document && <small>{document.pageCount || '—'} 页 · {document.analyzer === 'demo' ? '内置演示分析' : document.analyzer ? '模型分析' : statusLabels[document.status]} · {pendingCount} 项待复核</small>}
         </div>
         <div className="header-actions">
           <span className="disclaimer"><Scale size={15} />辅助审查，不构成法律意见</span>
