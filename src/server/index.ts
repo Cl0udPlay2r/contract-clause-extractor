@@ -7,6 +7,7 @@ import express from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { locateOriginalText } from './analysis.js';
+import { buildExport } from './export.js';
 import { markInterruptedJobs, getDocument, getDocumentDetail, getClause, getPages, insertDocument, listDocuments, setDocumentState, updateClause } from './repository.js';
 import { startProcessing } from './processor.js';
 
@@ -63,6 +64,16 @@ app.post('/api/documents', upload.single('file'), (request, response) => {
   }
 });
 
+app.get('/api/documents/:id/export', async (request, response) => {
+  const detail = getDocumentDetail(request.params.id);
+  if (!detail) return response.status(404).json({ error: '文档不存在。' });
+  if (detail.document.status !== 'completed') return response.status(409).json({ error: '分析完成后才能导出。' });
+  const buffer = await buildExport(detail);
+  const baseName = detail.document.name.replace(/\.[^.]+$/, '').slice(0, 80) || '合同复核结果';
+  response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  response.setHeader('Content-Disposition', `attachment; filename="contract-review.xlsx"; filename*=UTF-8''${encodeURIComponent(`${baseName}-复核结果.xlsx`)}`);
+  response.send(buffer);
+});
 app.post('/api/documents/:id/retry', (request, response) => {
   const document = getDocument(request.params.id);
   if (!document) return response.status(404).json({ error: '文档不存在。' });

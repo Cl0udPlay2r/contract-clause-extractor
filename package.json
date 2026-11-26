@@ -8,7 +8,7 @@
     "dev:client": "vite",
     "build": "tsc --noEmit && vite build",
     "start": "tsx src/server/index.ts",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "test": "node --require ./tests/setup.cjs --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
