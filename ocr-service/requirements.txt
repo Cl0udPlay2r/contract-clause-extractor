@@ -1,5 +1,15 @@
+# Web layer
 fastapi>=0.115,<1
 uvicorn[standard]>=0.34,<1
 python-multipart>=0.0.20,<1
-paddlepaddle>=3.0,<4
-paddleocr>=3.3,<4
+
+# OCR engine (pick at least one; the service prefers RapidOCR when both are present)
+# Lightweight: single wheel, bundled Chinese models, ~80 MB of dependencies.
+rapidocr-onnxruntime>=1.4,<2
+# Heavier alternative (~600 MB with paddlepaddle):
+# paddlepaddle>=3.0,<4
+# paddleocr>=3.3,<4
+
+# Scanned-PDF page rendering
+pypdfium2>=5,<6
+Pillow>=10,<14

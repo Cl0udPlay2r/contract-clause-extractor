@@ -51,7 +51,7 @@ Node 服务 (Express 5，src/server)
    ├── processor.ts    异步处理状态机
    └── export.ts       ExcelJS 导出
         │
-SQLite (node:sqlite)    本地 OCR 服务 (FastAPI + PaddleOCR，ocr-service/)
+SQLite (node:sqlite)    本地 OCR 服务 (FastAPI + RapidOCR/PaddleOCR，ocr-service/)
 ```
 
 数据库四张表：`documents`（文件与处理状态）、`pages`（按页原文与来源）、`clauses`（结构化结果与人工状态）、`review_rules`（演示审查规则）。
@@ -119,19 +119,43 @@ curl -s http://127.0.0.1:4000/api/health
 
 ### OCR 服务（扫描件与图片必需）
 
+服务默认使用 **RapidOCR**（onnxruntime，中文模型随 wheel 内置，安装量约 100 MB），装了 PaddleOCR 时也能作为备选引擎自动接管。两者都不需要联网下载模型。
+
 ```bash
 cd ocr-service
-python -m venv .venv && .venv\Scripts\activate      # Windows
-pip install -r requirements.txt
-uvicorn app:app --host 127.0.0.1 --port 4100
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt     # Windows
+# macOS/Linux: .venv/bin/python -m pip install -r requirements.txt
+
+.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 4100
 ```
 
-未启动时，扫描件会返回明确错误"OCR 服务不可用"，而不是给出空结果。
+确认服务就绪（`engine` 不为 `null` 才说明 OCR 引擎可用）：
+
+```bash
+curl -s http://127.0.0.1:4100/health
+# {"ok":true,"engine":"rapidocr"}
+```
+
+判定标准：
+
+- 端口 4100 无监听时，应用会返回"OCR 服务不可用。扫描件和图片需要先启动本地 OCR 服务。"——这就是服务没启动，不是代码问题。
+- 引擎未安装时，`/health` 返回 `engine: null`，`/ocr` 返回 503 并提示执行 `pip install -r requirements.txt`。
+- 扫描版 PDF 由服务逐页渲染后再识别，页码由服务回填；超过 30 页会被拒绝，需先拆分。
+- 图片与扫描件识别完成后，页面的"文本来源"显示为 `OCR`，低于 0.75 置信度会在界面上提示重点核对。
+
+### 模型接口返回 400 时
+
+应用会把上游返回的错误正文一并带到失败信息里（截断 300 字符），直接看界面上的错误提示即可定位。常见原因：
+
+- 兼容端点不支持 `response_format: json_object`：已做自动降级，第二次请求会去掉该参数，无需手动处理。
+- `LLM_MODEL` 与实际可用模型名不一致（大小写、版本号），或 `LLM_BASE_URL` 少了 `/v1`。
+- 计费/额度不足或密钥无该模型权限，也会以 400 返回。
 
 ## 测试与评估
 
 ```bash
-pnpm test           # 12 个用例：上传校验、文件名编码、OCR 响应、原文匹配、缺失条款、Excel 导出、真实 PDF 集成
+pnpm test           # 14 个用例：上传校验、文件名编码、OCR 响应、原文匹配、缺失条款、Excel 导出、模型降级与错误透传、真实 PDF 集成
 pnpm demo:evaluate  # 对照 demo/samples 的人工标注，输出类型召回与原文定位率
 ```
 

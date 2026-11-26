@@ -141,29 +141,44 @@ async function analyzeChunkWithLlm(chunk: string) {
   const model = process.env.LLM_MODEL;
   if (!baseUrl || !apiKey || !model) throw new Error('真实模型模式需要配置 LLM_BASE_URL、LLM_API_KEY 和 LLM_MODEL。');
   const prompt = `从合同文本中提取付款、违约责任、争议管辖条款。仅返回 JSON：{"clauses":[{"type":"payment|liability|jurisdiction","originalText":"逐字原文","pageNumber":1,"summary":"简短摘要"}]}。originalText 不得改写；页码以文本中的页标记为准；没有发现的类型不要编造。`;
+
+  async function call(useResponseFormat: boolean) {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model, temperature: 0,
+        ...(useResponseFormat ? { response_format: { type: 'json_object' } } : {}),
+        messages: [{ role: 'system', content: prompt }, { role: 'user', content: chunk }],
+      }),
+      signal: AbortSignal.timeout(90_000),
+    });
+    if (!response.ok) {
+      // Surface the upstream message so a 400 can be diagnosed without reading server logs.
+      const detail = (await response.text().catch(() => '')).slice(0, 300).replace(/\s+/g, ' ');
+      const error = new Error(`模型接口返回 HTTP ${response.status}${detail ? `：${detail}` : ''}`);
+      Object.assign(error, { status: response.status });
+      throw error;
+    }
+    const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content) throw new Error('模型接口未返回文本内容');
+    return parseModelContent(content).clauses;
+  }
+
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model, temperature: 0, response_format: { type: 'json_object' },
-          messages: [{ role: 'system', content: prompt }, { role: 'user', content: chunk }],
-        }),
-        signal: AbortSignal.timeout(90_000),
-      });
-      if (!response.ok) throw new Error(`模型接口返回 HTTP ${response.status}`);
-      const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-      const content = payload.choices?.[0]?.message?.content;
-      if (!content) throw new Error('模型接口未返回文本内容');
-      return parseModelContent(content).clauses;
+      // Many OpenAI-compatible proxies reject response_format; retry without it once.
+      return await call(attempt === 0);
     } catch (error) {
       lastError = error;
+      if ((error as { status?: number }).status !== 400) continue;
     }
   }
   throw new Error(`模型分析失败：${lastError instanceof Error ? lastError.message : '输出格式无效'}`);
 }
+
 
 export async function analyzeContract(pages: PageRecord[]): Promise<AnalyzedClause[]> {
   const provider = process.env.ANALYSIS_PROVIDER || 'demo';
