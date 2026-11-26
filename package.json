@@ -8,6 +8,8 @@
     "dev:client": "vite",
     "build": "tsc --noEmit && vite build",
     "start": "tsx src/server/index.ts",
+    "demo:samples": "python demo/generate_samples.py",
+    "demo:evaluate": "tsx demo/evaluate.ts",
     "test": "node --require ./tests/setup.cjs --import tsx --test tests/*.test.ts"
   },
   "dependencies": {

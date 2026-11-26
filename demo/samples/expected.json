@@ -1,0 +1,37 @@
+[
+  {
+    "file": "service-contract.pdf",
+    "present": [
+      "payment",
+      "liability",
+      "jurisdiction"
+    ]
+  },
+  {
+    "file": "balanced-contract.pdf",
+    "present": [
+      "payment",
+      "liability",
+      "jurisdiction"
+    ]
+  },
+  {
+    "file": "missing-clauses.pdf",
+    "present": []
+  },
+  {
+    "file": "no-jurisdiction.pdf",
+    "present": [
+      "payment",
+      "liability"
+    ]
+  },
+  {
+    "file": "unclear-contract.pdf",
+    "present": [
+      "payment",
+      "liability",
+      "jurisdiction"
+    ]
+  }
+]

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+tmp/
 .env
 .env.*
 !.env.example
@@ -7,7 +8,8 @@ data/*
 !data/.gitkeep
 uploads/*
 !uploads/.gitkeep
-demo/output/
+demo/output/*
+!demo/output/service-contract-review.xlsx
 *.log
 .DS_Store
 __pycache__/
